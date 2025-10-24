@@ -1,127 +1,121 @@
-//
-// Created by andya on 05.07.18.
-//
+// ROS2 wrapper for FLIR Boson camera
 
-#include <ros/ros.h>
+
+#include <rclcpp/rclcpp.hpp>
 #include <iostream>
 #include <stdio.h>
 #include <stdint.h>
 #include <opencv2/opencv.hpp>
 #include "boson_camera.h"
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <camera_info_manager/camera_info_manager.h>
-#include <image_transport/image_transport.h>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <camera_info_manager/camera_info_manager.hpp>
+#include <image_transport/image_transport.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <time.h>
 
-ros::Duration get_reset_time() {
-    /* get monotonic clock time */
+// Compute offset between system and monotonic clock
+rclcpp::Duration get_reset_time(rclcpp::Clock & clock) {
     struct timespec monotime;
     clock_gettime(CLOCK_MONOTONIC, &monotime);
 
-    /* get realtime clock time for comparison */
-    //    struct timespec realtime;
-    //    clock_gettime(CLOCK_REALTIME, &realtime);
+    rclcpp::Time now = clock.now();
+    rclcpp::Duration epoch_duration(0, 0);
+    epoch_duration = now - rclcpp::Time(monotime.tv_sec, monotime.tv_nsec, RCL_SYSTEM_TIME);
 
-    ros::Time now = ros::Time::now();
-	ros::Duration epoch_duration(0, 0);
-
-//    struct timespec epoch_duration;
-    epoch_duration.sec = now.sec - monotime.tv_sec;
-	long nsec = now.nsec - monotime.tv_nsec;
-	if (nsec < 0) {
-		epoch_duration.sec--;
-		epoch_duration.nsec = 1e9 + nsec;
-	} else {
-		epoch_duration.nsec = nsec;
-	}
-	std::cout << "Epoch Time: " << epoch_duration.sec << "." << epoch_duration.nsec << std::endl;
+    std::cout << "Epoch Time: " << epoch_duration.seconds() << std::endl;
     return epoch_duration;
 }
 
-int main(int argc, char *argv[]) {
-    // Default frame rate of 10 Hz
-    float frame_rate = 10.0;
+int main(int argc, char * argv[])
+{
+    // Initialize ROS2
+    rclcpp::init(argc, argv);
+    auto node = rclcpp::Node::make_shared("boson_camera_node");
+
+    // Parameters
+    float frame_rate = 10.0f;
     std::string camera_name = "boson";
+    std::string camera_info_url;
+    std::string frame_id = "boson_optical_frame";
+    node->declare_parameter<std::string>("camera_info_url", "");
+    node->declare_parameter<float>("frame_rate", frame_rate);
+    node->declare_parameter<std::string>("frame_id", frame_id);
+    node->get_parameter("camera_info_url", camera_info_url);
+    node->get_parameter("frame_rate", frame_rate);
+    node->get_parameter("frame_id", frame_id);
 
-    // Initialize node
-    ros::init(argc, argv, "boson_camera_node");
+    // Camera info manager
+    auto cinfo_mgr = std::make_shared<camera_info_manager::CameraInfoManager>(
+        node, camera_name, camera_info_url);
 
-    ros::NodeHandle nh("boson");
-    ros::NodeHandle nh_private("~");
+    // Device argument
+    if (argc < 2) {
+        RCLCPP_ERROR(node->get_logger(), "Usage: %s <device>", argv[0]);
+        return 1;
+    }
 
-    // ROS param handling
-    std::string camera_info_url_;
-    nh_private.param("camera_info_url", camera_info_url_, std::string(""));
-
-    // Initialize Camera Info Handler
-    std::shared_ptr<camera_info_manager::CameraInfoManager> cinfo_;
-    cinfo_.reset(new camera_info_manager::CameraInfoManager(nh, camera_name, camera_info_url_));
-
-    // Initialize camera
-    BosonCamera camera = BosonCamera(argv[1]);
+    // Initialize Boson camera
+    BosonCamera camera(argv[1]);
     camera.init();
     camera.allocateBuffer();
     camera.startStream();
 
-    // Get time difference between REALTIME and MONOTIME
-    ros::Duration epoch_duration = get_reset_time();
+    // Use system clock for real hardware timing
+    rclcpp::Clock clock(RCL_SYSTEM_TIME);
+    rclcpp::Duration epoch_duration = get_reset_time(clock);
 
-    // Setup publisher
-    ros::Publisher camera_info_pub_;
-    camera_info_pub_ = nh.advertise<sensor_msgs::CameraInfo>("/boson/camera_info", 1);
+    // Publishers (relative topic names for remapping)
+    auto image_pub = image_transport::create_publisher(node, "image_raw");
+    auto camera_info_pub = node->create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 1);
 
-    image_transport::ImageTransport it(nh);
-    image_transport::Publisher boson_raw_pub = it.advertise("/boson/image_raw", 1);
+    RCLCPP_INFO(node->get_logger(), "Streaming with frequency of %.1f Hz", frame_rate);
+    rclcpp::Rate loop_rate(frame_rate);
+    uint64_t framecount = 0;
 
-    // Set publishing frequency
-    if (nh.hasParam("frame_rate")) {
-        nh.getParam("frame_rate", frame_rate);
-    }
-    printf("Streaming with frequency of %.1f Hz\n", frame_rate);
-    int framecount = 0;
+    try {
+        // Main capture loop
+        while (rclcpp::ok()) {
+            // Capture raw frame
+            cv::Mat img = camera.captureRawFrame();
+            framecount++;
 
-    ros::Rate loop_rate(frame_rate);
+            // Build header and timestamp
+            std_msgs::msg::Header hdr;
+            hdr.stamp = rclcpp::Time(camera.last_ts.tv_sec,
+                                     camera.last_ts.tv_usec * 1000,
+                                     RCL_SYSTEM_TIME) + epoch_duration;
+            hdr.frame_id = frame_id;
 
-    while (ros::ok()) {
-        cv::Mat img = camera.captureRawFrame();
-        framecount++;
+            // Convert to ROS image message
+            auto cv_image = cv_bridge::CvImage(hdr, "mono16", img);
+            auto msg = cv_image.toImageMsg();
+            msg->width = camera.width;
+            msg->height = camera.height;
 
-        // Convert to image_msg & publish msg
-        sensor_msgs::ImagePtr msg;
-        msg = cv_bridge::CvImage(std_msgs::Header(), "mono16", img).toImageMsg();
-		    // Build timestamp
-		    ros::Time last_ts(0, 0);
-		    last_ts.sec = camera.last_ts.tv_sec;
-		    last_ts.nsec = camera.last_ts.tv_usec * 1e3;
-        msg->width = camera.width;
-        msg->height = camera.height;
-        msg->header.stamp = last_ts + epoch_duration;
+            // Publish image
+            image_pub.publish(msg);
 
-        boson_raw_pub.publish(msg);
+            // Publish camera info if available
+            if (cinfo_mgr->isCalibrated()) {
+                auto cam_info = std::make_shared<sensor_msgs::msg::CameraInfo>(
+                    cinfo_mgr->getCameraInfo());
+                cam_info->header = hdr;
+                camera_info_pub->publish(*cam_info);
+            } else if (framecount % 100 == 0) {
+                RCLCPP_INFO(node->get_logger(), "Boson is not calibrated!");
+            }
 
-        // Publish Camera Info
-        if (cinfo_->isCalibrated()) {
-            sensor_msgs::CameraInfoPtr cinfo_msg(
-                    new sensor_msgs::CameraInfo(cinfo_->getCameraInfo()));
-            cinfo_msg->header.stamp = msg->header.stamp;
-            camera_info_pub_.publish(cinfo_msg);
-        } else {
-            if (framecount % 100 == 0)
-                ROS_INFO_ONCE("Boson is not calibrated!");
+            rclcpp::spin_some(node);
+            loop_rate.sleep();
         }
-
-        ros::spinOnce();
-        loop_rate.sleep();
+    } catch (const std::exception &e) {
+        RCLCPP_ERROR(node->get_logger(), "Exception caught: %s", e.what());
     }
 
-    ros::spinOnce();
-
-    boson_raw_pub.shutdown();
-    camera_info_pub_.shutdown();
-
+    // Cleanup
     camera.stopStream();
     camera.closeConnection();
+    rclcpp::shutdown();
     return 0;
 }

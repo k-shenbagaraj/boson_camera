@@ -1,6 +1,21 @@
 # General
-.idea
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build and install
+build/
+install/
+log/
 
 # CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
 cmake-build-debug/
 cmake-build-release/
+Makefile
+
+# Colcon
+colcon*.log

@@ -1,27 +1,40 @@
-cmake_minimum_required(VERSION 2.8.3)
-
+cmake_minimum_required(VERSION 3.5)
 project(boson_camera)
 
-find_package(catkin_simple REQUIRED)
-
-catkin_simple(ALL_DEPS_REQUIRED)
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
-
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(camera_info_manager REQUIRED)
+find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+add_compile_options(-O3)
 
 set(SRC_FOLDER src)
 
-cs_add_executable(
-        ${PROJECT_NAME}
-        ${SRC_FOLDER}/boson_ros_node.cpp
-        ${SRC_FOLDER}/boson_camera.cpp
+add_executable(${PROJECT_NAME}_node
+  ${SRC_FOLDER}/boson_camera_node.cpp
+  ${SRC_FOLDER}/boson_camera.cpp
 )
-target_link_libraries(${PROJECT_NAME}
-        ${catkin_LIBRARIES}
-        ${OpenCV_LIBRARIES}
-        )
 
-cs_install()
-cs_export()
+ament_target_dependencies(${PROJECT_NAME}_node
+  rclcpp
+  sensor_msgs
+  image_transport
+  camera_info_manager
+  cv_bridge
+  OpenCV
+)
 
+install(TARGETS ${PROJECT_NAME}_node
+  DESTINATION lib/${PROJECT_NAME})
+
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+ament_package()
