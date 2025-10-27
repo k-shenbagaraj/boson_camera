@@ -1,4 +1,4 @@
-name: Build
+name: Build (ROS 2 Jazzy)
 
 on:
   push:
@@ -8,10 +8,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ros:jazzy-ros-base
+      image: ros:jazzy-ros-base  
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Install dependencies
+        shell: bash
         run: |
           apt-get update
           apt-get install -y \
@@ -22,8 +25,11 @@ jobs:
             ros-jazzy-cv-bridge \
             ros-jazzy-sensor-msgs \
             libopencv-dev
+
       - name: Build boson_camera
+        shell: bash
         run: |
+          set -eux
           mkdir -p ~/ws/src
           cp -r . ~/ws/src/boson_camera
           cd ~/ws
