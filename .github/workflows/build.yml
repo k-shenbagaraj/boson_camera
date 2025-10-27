@@ -9,7 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ros_distro: [humble, iron, jazzy]  
+        ros_distro: [jazzy, iron, humble]
+
     steps:
       - uses: actions/checkout@v4
 
@@ -18,13 +19,23 @@ jobs:
         with:
           required-ros-distributions: ${{ matrix.ros_distro }}
 
-      - name: Build (colcon)
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            ros-${{ matrix.ros_distro }}-rclcpp \
+            ros-${{ matrix.ros_distro }}-image-transport \
+            ros-${{ matrix.ros_distro }}-camera-info-manager \
+            ros-${{ matrix.ros_distro }}-cv-bridge \
+            ros-${{ matrix.ros_distro }}-sensor-msgs \
+            libopencv-dev
+
+      - name: Build boson_camera
         shell: bash
         run: |
           set -euxo pipefail
-          # create a workspace and build package
           mkdir -p ~/ws/src
           cp -r . ~/ws/src/boson_camera
           source /opt/ros/${{ matrix.ros_distro }}/setup.bash
           cd ~/ws
-          colcon build --packages-select boson_camera --event-handlers console_direct+
+          colcon build --packages-select boson_camera
