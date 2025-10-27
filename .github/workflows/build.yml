@@ -8,31 +8,36 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ros:jazzy-ros-base  
+      image: ros:jazzy-ros-base  # Official ROS 2 Jazzy image
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Setup dependencies
         shell: bash
         run: |
+          set -ex
           apt-get update
           apt-get install -y \
             python3-colcon-common-extensions \
-            ros-jazzy-rclcpp \
-            ros-jazzy-image-transport \
-            ros-jazzy-camera-info-manager \
-            ros-jazzy-cv-bridge \
-            ros-jazzy-sensor-msgs \
+            python3-rosdep \
+            python3-vcstool \
             libopencv-dev
+
+          # Initialize rosdep for dependency resolution
+          rosdep init || true
+          rosdep update
+
+          # Install dependencies listed in package.xml automatically
+          mkdir -p ~/ws/src
+          cp -r . ~/ws/src/boson_camera
+          cd ~/ws
+          rosdep install --from-paths src --ignore-src -r -y
 
       - name: Build boson_camera
         shell: bash
         run: |
           set -ex
           source /opt/ros/jazzy/setup.bash
-          mkdir -p ~/ws/src
-          cp -r . ~/ws/src/boson_camera
           cd ~/ws
-          source /opt/ros/jazzy/setup.bash
           colcon build --packages-select boson_camera
