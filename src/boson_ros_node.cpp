@@ -47,7 +47,7 @@ int main(int argc, char * argv[])
 
     // Camera info manager
     auto cinfo_mgr = std::make_shared<camera_info_manager::CameraInfoManager>(
-        node, camera_name, camera_info_url);
+        node.get(), camera_name, camera_info_url);
 
     // Device argument
     if (argc < 2) {
@@ -66,8 +66,8 @@ int main(int argc, char * argv[])
     rclcpp::Duration epoch_duration = get_reset_time(clock);
 
     // Publishers (relative topic names for remapping)
-    auto image_pub = image_transport::create_publisher(node, "image_raw");
-    auto camera_info_pub = node->create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 1);
+    auto image_pub = image_transport::create_publisher(node.get(), "/boson/image_raw");
+    auto camera_info_pub = node->create_publisher<sensor_msgs::msg::CameraInfo>("/boson/camera_info", 1);
 
     RCLCPP_INFO(node->get_logger(), "Streaming with frequency of %.1f Hz", frame_rate);
     rclcpp::Rate loop_rate(frame_rate);

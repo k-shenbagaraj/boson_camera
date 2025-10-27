@@ -16,8 +16,12 @@ add_compile_options(-O3)
 
 set(SRC_FOLDER src)
 
+include_directories(
+  include
+)
+
 add_executable(${PROJECT_NAME}_node
-  ${SRC_FOLDER}/boson_camera_node.cpp
+  ${SRC_FOLDER}/boson_ros_node.cpp
   ${SRC_FOLDER}/boson_camera.cpp
 )
 
@@ -35,6 +39,14 @@ install(TARGETS ${PROJECT_NAME}_node
 
 install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
+)
+
+install(FILES package.xml
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY include/
+  DESTINATION include/${PROJECT_NAME}
 )
 
 ament_package()

@@ -1,39 +1,94 @@
-FLIR Boson ROS Wrapper [deprecated see zauron-interface]
-=============================
-ROS Wrapper camera interface for the FLIR Boson 640 being used for the Zauron. This is an initial work-in-progress project.
-This repository provides minimal functionalities to stream and republish over ROS the infrared camera [FLIR Boson 640](https://www.flir.com/products/boson/).
+# FLIR Boson ROS 2 Wrapper
 
-Getting started
-------------------
-0. Install requirements: [catkin_simple](https://github.com/catkin/catkin_simple) and [OpenCV](https://www.opencv.org/)
-1. Build the package with `catkin build boson_camera`
-2. Connect the FLIR Boson 640 camera.
+A ROS 2 (Humble +) package providing a minimal interface to stream and republish infrared video from the **FLIR Boson 640+** camera.
 
-   Make sure that your system has read access to the device, which should be listed as `/dev/ttyACM0`
-   
-   If not you can give access to the device by invoking `sudo chmod a+rwx /dev/ttyACM0` command
-3. Try to find the unique ID that your Boson 640 has by using these commands:
-   ```$xslt
-   $ cd /dev/v4l/by-id
-   $ ls
+## Overview
+
+This package wraps the FLIR Boson SDK and publishes the camera’s infrared stream as standard ROS 2 image topics using:
+
+- rclcpp  
+- sensor_msgs  
+- image_transport  
+- camera_info_manager  
+- cv_bridge  
+
+It provides:
+
+- Real-time infrared image publishing  
+- Camera info publishing  
+- Compatibility with RViz2 and standard ROS 2 image pipelines  
+
+## Prerequisites
+
+Make sure your system has ROS 2 Humble installed, then install dependencies:
+
+```bash
+sudo apt update
+sudo apt install ros-humble-rclcpp ros-humble-image-transport                  ros-humble-camera-info-manager ros-humble-cv-bridge                  ros-humble-sensor-msgs libopencv-dev
+```
+
+## Build Instructions
+
+```bash
+# Create and enter a ROS 2 workspace
+mkdir -p ~/ws/src
+cd ~/ws/src
+
+# Clone this repository
+git clone https://github.com/k-shenbagaraj/boson_camera.git
+
+# Build the package
+cd ~/ws
+colcon build --packages-select boson_camera
+
+# Source the workspace
+source install/setup.bash
+```
+
+## Connect the Camera
+
+1. Plug in your **FLIR Boson 640** via USB. It should appear as `/dev/video0` or `/dev/v4l/by-id/...`
+2. If permission is denied:
+   ```bash
+   sudo chmod a+rw /dev/video0
    ```
-   Your device ID should look somewhat like this:
-   ```$xslt
-   /dev/v4l/by-id/usb-FLIR_Boson_XXXXX-video-index 
+   For serial devices:
+   ```bash
+   sudo chmod a+rw /dev/ttyACM0
    ```
-   Update the launch file accordingly
-4. Run the code `roslaunch boson_camera boson640.launch`
+3. Verify the device path:
+   ```bash
+   ls /dev/v4l/by-id/
+   ```
+   Example output:
+   ```
+   usb-FLIR_Boson_XXXXXXXX-video-index0
+   ```
 
-#### Examples
+## How to Run
 
-<img src="resources/images/ex_1.png" width="300"> <img src="resources/images/ex_2.png" width="300">
+### Run Directly
 
------------------------------
-Boson SDK Documentation
------------------------------
-[Boson SDK Documentation](https://drive.google.com/open?id=1fuXUIu_wzB4zuVmTPbtUhoiKg0WnqEHm)
+```bash
+ros2 run boson_camera boson_camera_node /dev/video0
+```
 
------------------------------
-Contribution
------------------------------
-Contributions, enhancement and everything else is welcome, open issues, open pull requests, or simply contact us.
+Publishes to:
+```
+/boson/image_raw
+```
+
+### Run Using the Launch File
+
+```bash
+ros2 launch boson_camera boson_camera.launch.py
+```
+
+If needed, edit `launch/boson_camera.launch.py` to point to your device path (e.g., `/dev/v4l/by-id/...`).
+
+
+
+## Boson SDK Documentation
+
+[FLIR Boson SDK Documentation](https://drive.google.com/open?id=1fuXUIu_wzB4zuVmTPbtUhoiKg0WnqEHm)
+

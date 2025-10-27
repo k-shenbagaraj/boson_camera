@@ -16,7 +16,7 @@ def generate_launch_description():
         DeclareLaunchArgument('respawn', default_value='false'),
         DeclareLaunchArgument('debug', default_value='false'),
         DeclareLaunchArgument('device_id',
-                              default_value='/dev/v4l/by-id/usb-FLIR_Boson_431561-video-index'),
+                              default_value='/dev/boson_video'),
         DeclareLaunchArgument('boson_name', default_value='boson'),
         DeclareLaunchArgument('boson_config_file',
                               default_value='config/boson640_config.yaml'),

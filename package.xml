@@ -14,6 +14,8 @@
   <depend>camera_info_manager</depend>
   <depend>cv_bridge</depend>
   <depend>opencv</depend>
-
-  <export/>
+  
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>
