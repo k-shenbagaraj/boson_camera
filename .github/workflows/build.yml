@@ -30,6 +30,7 @@ jobs:
         shell: bash
         run: |
           set -ex
+          source /opt/ros/jazzy/setup.bash
           mkdir -p ~/ws/src
           cp -r . ~/ws/src/boson_camera
           cd ~/ws
