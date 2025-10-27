@@ -7,35 +7,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        ros_distro: [jazzy, iron, humble]
-
+    container:
+      image: ros:jazzy-ros-base
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup ROS 2 ${{ matrix.ros_distro }}
-        uses: ros-tooling/setup-ros@v0.6
-        with:
-          required-ros-distributions: ${{ matrix.ros_distro }}
-
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y \
-            ros-${{ matrix.ros_distro }}-rclcpp \
-            ros-${{ matrix.ros_distro }}-image-transport \
-            ros-${{ matrix.ros_distro }}-camera-info-manager \
-            ros-${{ matrix.ros_distro }}-cv-bridge \
-            ros-${{ matrix.ros_distro }}-sensor-msgs \
+          apt-get update
+          apt-get install -y \
+            python3-colcon-common-extensions \
+            ros-jazzy-rclcpp \
+            ros-jazzy-image-transport \
+            ros-jazzy-camera-info-manager \
+            ros-jazzy-cv-bridge \
+            ros-jazzy-sensor-msgs \
             libopencv-dev
-
       - name: Build boson_camera
-        shell: bash
         run: |
-          set -euxo pipefail
           mkdir -p ~/ws/src
           cp -r . ~/ws/src/boson_camera
-          source /opt/ros/${{ matrix.ros_distro }}/setup.bash
           cd ~/ws
+          source /opt/ros/jazzy/setup.bash
           colcon build --packages-select boson_camera
