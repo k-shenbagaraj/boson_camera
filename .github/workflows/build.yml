@@ -8,28 +8,41 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ros:jazzy-ros-base  # Official minimal ROS 2 Jazzy image
+      image: ros:jazzy-ros-base  # minimal base image
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup ROS 2 dependencies
+      - name: Setup dependencies
         shell: bash
         run: |
           set -ex
+          # Ensure full ROS repositories and universe enabled
           apt-get update
-          apt-get install -y \
-            python3-rosdep \
-            python3-colcon-common-extensions \
-            python3-vcstool \
-            build-essential \
-            libopencv-dev
+          apt-get install -y software-properties-common curl gnupg2 lsb-release
 
-          # Initialize rosdep (ignore warning if already initialized)
+          # Add universe & ROS sources
+          add-apt-repository universe
+          curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" > /etc/apt/sources.list.d/ros2.list
+
+          apt-get update
+
+          # Install full build and dependency stack
+          apt-get install -y \
+            python3-colcon-common-extensions \
+            python3-rosdep \
+            python3-vcstool \
+            ros-jazzy-cv-bridge \
+            ros-jazzy-image-transport \
+            ros-jazzy-camera-info-manager \
+            libopencv-dev build-essential
+
+          # Initialize rosdep (safe to rerun)
           rosdep init || true
           rosdep update
 
-      - name: Install package dependencies via rosdep
+      - name: Install workspace dependencies
         shell: bash
         run: |
           set -ex
