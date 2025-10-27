@@ -2,6 +2,9 @@
 
 A ROS 2 (Humble +) package providing a minimal interface to stream and republish infrared video from the **FLIR Boson 640+** camera.
 
+[![Build Status](https://github.com/k-shenbagaraj/boson_camera/actions/workflows/build.yml/badge.svg)](https://github.com/k-shenbagaraj/boson_camera/actions/workflows/build.yml)
+
+
 ## Overview
 
 This package wraps the FLIR Boson SDK and publishes the camera’s infrared stream as standard ROS 2 image topics using:
@@ -20,11 +23,13 @@ It provides:
 
 ## Prerequisites
 
-Make sure your system has ROS 2 Humble installed, then install dependencies:
+Make sure your system has **ROS 2** installed, then install dependencies:
 
 ```bash
 sudo apt update
-sudo apt install ros-humble-rclcpp ros-humble-image-transport                  ros-humble-camera-info-manager ros-humble-cv-bridge                  ros-humble-sensor-msgs libopencv-dev
+sudo apt install ros-${ROS_DISTRO}-rclcpp ros-${ROS_DISTRO}-image-transport \
+                 ros-${ROS_DISTRO}-camera-info-manager ros-${ROS_DISTRO}-cv-bridge \
+                 ros-${ROS_DISTRO}-sensor-msgs libopencv-dev
 ```
 
 ## Build Instructions
