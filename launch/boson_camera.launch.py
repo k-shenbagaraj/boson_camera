@@ -1,5 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -15,11 +16,9 @@ def generate_launch_description():
         # Common args
         DeclareLaunchArgument('respawn', default_value='false'),
         DeclareLaunchArgument('debug', default_value='false'),
-        DeclareLaunchArgument('device_id',
-                              default_value='/dev/boson_video'),
+        DeclareLaunchArgument('device_id', default_value='/dev/boson_video'),
         DeclareLaunchArgument('boson_name', default_value='boson'),
-        DeclareLaunchArgument('boson_config_file',
-                              default_value='config/boson640_config.yaml'),
+        DeclareLaunchArgument('boson_config_file', default_value='config/boson640_config.yaml'),
 
         # Boson camera node
         Node(
@@ -28,11 +27,12 @@ def generate_launch_description():
             name=boson_name,
             output='screen',
             respawn=respawn,
-            prefix=[('gdb -ex run --args ' if debug == 'true' else '')],
-            arguments=[device_id],
+            prefix=['gdb', '-ex', 'run', '--args'] if LaunchConfiguration('debug') == 'true' else [],
             parameters=[{
+                'device_id': device_id,
                 'camera_info_url': 'file://config/calibration/boson640.yaml',
-                'frame_id': boson_optical_frame,
+                'frame_id': 'boson_optical_frame',
+                'config_file': boson_config_file,
             }],
         ),
     ])

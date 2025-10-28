@@ -49,14 +49,21 @@ int main(int argc, char * argv[])
     auto cinfo_mgr = std::make_shared<camera_info_manager::CameraInfoManager>(
         node.get(), camera_name, camera_info_url);
 
-    // Device argument
-    if (argc < 2) {
-        RCLCPP_ERROR(node->get_logger(), "Usage: %s <device>", argv[0]);
+    // Get device path from ROS parameter (default to /dev/video0)
+    std::string device_id;
+    node->declare_parameter<std::string>("device_id", "/dev/video0");
+    node->get_parameter("device_id", device_id);
+
+    // Validate device path
+    if (access(device_id.c_str(), F_OK) == -1) {
+        RCLCPP_ERROR(node->get_logger(), "Camera device not found or not accessible: %s", device_id.c_str());
+        RCLCPP_ERROR(node->get_logger(), "Please check the connection or permissions (e.g., sudo chmod a+rw %s)", device_id.c_str());
+        rclcpp::shutdown();
         return 1;
     }
 
     // Initialize Boson camera
-    BosonCamera camera(argv[1]);
+    BosonCamera camera(device_id);
     camera.init();
     camera.allocateBuffer();
     camera.startStream();
@@ -67,6 +74,7 @@ int main(int argc, char * argv[])
 
     // Publishers (relative topic names for remapping)
     auto image_pub = image_transport::create_publisher(node.get(), "/boson/image_raw");
+    // auto compressed_pub = image_transport::create_publisher(node.get(), "/boson/image_raw/compressed");
     auto camera_info_pub = node->create_publisher<sensor_msgs::msg::CameraInfo>("/boson/camera_info", 1);
 
     RCLCPP_INFO(node->get_logger(), "Streaming with frequency of %.1f Hz", frame_rate);
