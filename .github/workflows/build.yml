@@ -28,7 +28,7 @@ jobs:
             ros-jazzy-image-transport \
             ros-jazzy-camera-info-manager \
             libopencv-dev build-essential \
-            libboost-python3-dev libboost-system-dev 
+            libboost-python312-dev libboost-system-dev 
 
           # Initialize rosdep safely
           rosdep init || true
