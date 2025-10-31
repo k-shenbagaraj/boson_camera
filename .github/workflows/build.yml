@@ -8,7 +8,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ros:jazzy-ros-base  # minimal base image
+      image: ros:jazzy-ros-base  # official minimal ROS 2 Jazzy image
 
     steps:
       - uses: actions/checkout@v4
@@ -17,18 +17,10 @@ jobs:
         shell: bash
         run: |
           set -ex
-          # Ensure full ROS repositories and universe enabled
           apt-get update
-          apt-get install -y software-properties-common curl gnupg2 lsb-release
+          apt-get install -y software-properties-common curl gnupg2 lsb-release git
 
-          # Add universe & ROS sources
-          add-apt-repository universe
-          curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" > /etc/apt/sources.list.d/ros2.list
-
-          apt-get update
-
-          # Install full build and dependency stack
+          # Core build & dev dependencies
           apt-get install -y \
             python3-colcon-common-extensions \
             python3-rosdep \
@@ -37,7 +29,7 @@ jobs:
             ros-jazzy-camera-info-manager \
             libopencv-dev build-essential
 
-          # Initialize rosdep (safe to rerun)
+          # Initialize rosdep safely
           rosdep init || true
           rosdep update
 
@@ -59,6 +51,7 @@ jobs:
           mkdir -p ~/ws/src
           cp -r . ~/ws/src/boson_camera
           cd ~/ws
+          source /opt/ros/jazzy/setup.bash
           rosdep install --from-paths src --ignore-src -r -y
 
       - name: Build boson_camera
@@ -66,5 +59,17 @@ jobs:
         run: |
           set -ex
           source /opt/ros/jazzy/setup.bash
+          source ~/ws/install/setup.bash  
           cd ~/ws
-          colcon build --packages-select boson_camera
+          colcon build --packages-select boson_camera --cmake-clean-cache
+
+      - name: Verify cv_bridge installation
+        shell: bash
+        run: |
+          set -ex
+          if [ ! -f ~/ws/install/cv_bridge/include/cv_bridge/cv_bridge.h ]; then
+            echo "cv_bridge header not found!"
+            exit 1
+          else
+            echo "cv_bridge header found successfully."
+          fi
