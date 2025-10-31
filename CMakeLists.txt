@@ -19,7 +19,9 @@ find_package(OpenCV REQUIRED)
 
 # Include directories
 
-include_directories(include)
+include_directories(include
+  ${OpenCV_INCLUDE_DIRS}
+  ${cv_bridge_INCLUDE_DIRS} )
 
 # Build the library (for component)
 
