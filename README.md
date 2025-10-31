@@ -72,21 +72,12 @@ source install/setup.bash
 
 ## How to Run
 
-### Run Directly
 
-```bash
-ros2 run boson_camera boson_camera_node /dev/video0
-```
-
-Publishes to:
-```
-/boson/image_raw
-```
 
 ### Run Using the Launch File
 
 ```bash
-ros2 launch boson_camera boson_camera.launch.py
+ros2 launch boson_camera boson_camera_composition.launch.py
 ```
 
 If needed, edit `launch/boson_camera.launch.py` to point to your device path (e.g., `/dev/v4l/by-id/...`).
