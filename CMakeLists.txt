@@ -76,6 +76,7 @@ ament_export_dependencies(
   image_transport
   camera_info_manager
   cv_bridge
+  image_transport
   OpenCV
 )
 
