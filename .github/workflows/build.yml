@@ -33,7 +33,6 @@ jobs:
             python3-colcon-common-extensions \
             python3-rosdep \
             python3-vcstool \
-            ros-jazzy-cv-bridge \
             ros-jazzy-image-transport \
             ros-jazzy-camera-info-manager \
             libopencv-dev build-essential
@@ -41,6 +40,17 @@ jobs:
           # Initialize rosdep (safe to rerun)
           rosdep init || true
           rosdep update
+
+      - name: Build cv_bridge from source (fix for Jazzy)
+        shell: bash
+        run: |
+          set -ex
+          mkdir -p ~/ws/src
+          cd ~/ws/src
+          git clone -b humble https://github.com/ros-perception/vision_opencv.git
+          cd ~/ws
+          source /opt/ros/jazzy/setup.bash
+          colcon build --packages-select cv_bridge
 
       - name: Install workspace dependencies
         shell: bash
